@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>CRUD example</title>
+	<script>
+		async function getList() {
+			const res = await fetch('/list');
+			const list = await res.json();
+			updateList(list);
+		}
+		async function clearList() {
+			const res = await fetch('/list', { method: 'DELETE' });
+			const list = await res.json();
+			updateList(list);
+		}
+		function updateList(list) {
+			document.getElementById('list').innerHTML = '';
+			for (let i = 0; i < list.length; i++) {
+				const container = document.createElement('div');
+				container.setAttribute('id', 'container' + list[i].id);
+				container.setAttribute('style', 'border-radius: 5px; border: 2px solid black;');
+				const remove = document.createElement('button');
+				remove.textContent = 'Remove item';
+				remove.setAttribute('onclick', 'removeItem(' + list[i].id + ')');
+				const name = document.createElement('div');
+				name.setAttribute('id', 'name' + list[i].id);
+				name.innerHTML = 'Name: <span>' + list[i].name + '</span>';
+				const load = document.createElement('button');
+				load.textContent = 'Load content';
+				load.setAttribute('id', 'load' + list[i].id);
+				load.setAttribute('onclick', 'getItem(' + list[i].id + ')');
+				const content = document.createElement('div');
+				content.setAttribute('id', 'content' + list[i].id);
+
+				container.appendChild(remove);
+				container.appendChild(name);
+				container.appendChild(load);
+				container.appendChild(content);
+
+				document.getElementById('list').appendChild(container);
+			}
+		}
+		async function getItem(id) {
+			const res = await fetch('/item?id=' + id);
+			const item = await res.json();
+			document.getElementById('content' + id).innerHTML = 'Content: <span>' + item.content + '</span>';
+			const editButton = document.createElement('button');
+			editButton.textContent = 'Edit';
+			editButton.setAttribute('onclick', 'editItem(' + id + ')');
+			editButton.setAttribute('id', 'editbutton' + id);
+			document.getElementById('load' + id).remove();
+			document.getElementById('container' + id).appendChild(editButton);
+		}
+		async function createItem() {
+			const name = document.getElementById('name').value;
+			const content = document.getElementById('content').value;
+
+			if (name.length === 0) {
+				alert('Error: empty name');
+				return;
+			}
+
+			const res = await fetch('/item', {
+				method: 'POST',
+				headers: {
+    				'Accept': 'application/json',
+    				'Content-Type': 'application/json'
+    			},
+    			body: JSON.stringify({ name, content }),
+			});
+			const item = await res.json();
+			await getList();
+		}
+		function editItem(id) {
+			console.log('edititem')
+			const name = document.querySelector('#name' + id + ' span').textContent;
+			const content = document.querySelector('#content' + id + ' span').textContent;
+			const editor = document.createElement('div');
+			editor.innerHTML = `New name: <input type="text" id="newname${id}" value="${name}" required />
+			New content: <input type="text" id="newcontent${id}" value="${content}" />
+			<button onclick="saveItem(${id})">Save</button>`;
+			document.getElementById('editbutton' + id).remove();
+			document.getElementById('container' + id).appendChild(editor);
+		}
+		async function saveItem(id) {
+			const name = document.getElementById('newname' + id).value;
+			const content = document.getElementById('newcontent' + id).value;
+
+			if (name.length === 0) {
+				alert('Error: empty name');
+				return;
+			}
+			const res = await fetch('/item', {
+				method: 'PUT',
+				headers: {
+    				'Accept': 'application/json',
+    				'Content-Type': 'application/json'
+    			},
+    			body: JSON.stringify({ id, name, content }),
+			});
+			const item = await res.json();
+			await getList();
+		}
+		function removeItem(id) {
+			fetch('/item?id=' + id, { method: 'DELETE' });
+			document.getElementById('container' + id).remove();
+		}
+	</script>
+</head>
+<body>
+	<div>
+		<button onclick="getList()">
+			Get list
+		</button>
+		<button onclick="clearList()">
+			Clear list
+		</button>
+	</div>
+	<div id="list"></div>
+	<div>
+		Name: <input type="text" id="name" required />
+		Content: <input type="text" id="content" />
+		<button onclick="createItem()">Create</button>
+	</div>
+</body>
+</html>
